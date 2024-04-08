@@ -37,15 +37,41 @@ echo "Terraform plan has been executed and output to rosa.tfplan"
 # Apply the Terraform plan
 terraform apply "rosa.tfplan"
 
-# Run Terraform command to get subnets string and assign it to SUBNET_IDS
+# Extract Subnets and Tagging
 SUBNET_IDS=$(terraform output -raw cluster-subnets-string)
-
-# Extract the first subnet (public subnet) and assign it to PUBLIC_SUBNET
 PUBLIC_SUBNET=$(echo $SUBNET_IDS | cut -d ',' -f1)
-
-# Extract the second subnet (private subnet) and assign it to PRIVATE_SUBNET
 PRIVATE_SUBNET=$(echo $SUBNET_IDS | cut -d ',' -f2)
+aws ec2 create-tags --resources $PUBLIC_SUBNET --tags Key=kubernetes.io/role/elb,Value=1
+aws ec2 create-tags --resources $PRIVATE_SUBNET --tags Key=kubernetes.io/role/internal-elb,Value=1
 
-# Now, you can use the $PUBLIC_SUBNET and $PRIVATE_SUBNET variables as needed
-echo "Public Subnet: $PUBLIC_SUBNET"
-echo "Private Subnet: $PRIVATE_SUBNET"
+# Create ROSA account roles
+rosa create account-roles --hosted-cp --mode auto --yes
+
+# Prompt for ACCOUNT_ROLES_PREFIX and set it
+read -p "Enter the ACCOUNT_ROLES_PREFIX: " ACCOUNT_ROLES_PREFIX
+export ACCOUNT_ROLES_PREFIX=$ACCOUNT_ROLES_PREFIX
+echo "ACCOUNT_ROLES_PREFIX: $ACCOUNT_ROLES_PREFIX"
+
+# Create OIDC provider
+rosa create oidc-config --mode=auto  --yes
+
+# Prompt for OIDC_ID and set it
+read -p "Enter the OIDC_ID: " OIDC_ID
+export OIDC_ID=$OIDC_ID
+
+# Prompt for OPERATOR_ROLE_PREFIX and set it
+read -p "Enter the OPERATOR_ROLE_PREFIX: " OPERATOR_ROLE_PREFIX
+export OPERATOR_ROLES_PREFIX=$OPERATOR_ROLE_PREFIX
+
+export AWS_ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
+
+# Create operator roles
+rosa create operator-roles --hosted-cp --prefix=$OPERATOR_ROLES_PREFIX --oidc-config-id=$OIDC_ID --installer-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role
+
+# Prompt for CLUSTER_NAME
+read -p "Enter the CLUSTER_NAME: " CLUSTER_NAME
+
+# Create ROSA cluster
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --mode=auto --hosted-cp --operator-roles-prefix $OPERATOR_ROLES_PREFIX --oidc-config-id $OIDC_ID --subnet-ids=$SUBNET_IDS
+
+echo "Script execution completed."
