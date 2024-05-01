@@ -71,7 +71,7 @@ export OPERATOR_ROLE_PREFIX=$operator_role_prefix
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 # Prompt for Billing ID, set, and export it
-read -p "Enter the Account ID: " billing_id
+read -p "Enter the Billing ID: " billing_id
 export BILLING_ID=$billing_id
 echo "BILLING_ID: $BILLING_ID"
 
