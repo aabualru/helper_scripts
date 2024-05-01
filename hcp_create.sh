@@ -55,15 +55,19 @@ echo "ACCOUNT_ROLES_PREFIX: $ACCOUNT_ROLES_PREFIX"
 # Create OIDC provider
 rosa create oidc-config --mode=auto  --yes
 
-# Prompt for OIDC_ID and set it
-read -p "Enter the OIDC_ID: " OIDC_ID
-export OIDC_ID=$OIDC_ID
+# OIDC_ID and set it
+OIDC_ID=$(rosa create oidc-config --mode auto --yes -o json | jq -r '.id')
 
 # Prompt for OPERATOR_ROLE_PREFIX and set it
 read -p "Enter the OPERATOR_ROLE_PREFIX: " OPERATOR_ROLE_PREFIX
 export OPERATOR_ROLES_PREFIX=$OPERATOR_ROLE_PREFIX
 
 export AWS_ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
+
+# Prompt for Billing ID:
+read -p "Enter the Account ID: " BILLING_ID
+export BILLING_ID=$BILLING_ID
+echo "BILLING_ID: $BILLING_ID"
 
 # Create operator roles
 rosa create operator-roles --hosted-cp --prefix=$OPERATOR_ROLES_PREFIX --oidc-config-id=$OIDC_ID --installer-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role
@@ -72,6 +76,6 @@ rosa create operator-roles --hosted-cp --prefix=$OPERATOR_ROLES_PREFIX --oidc-co
 read -p "Enter the CLUSTER_NAME: " CLUSTER_NAME
 
 # Create ROSA cluster
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --mode=auto --hosted-cp --operator-roles-prefix $OPERATOR_ROLES_PREFIX --oidc-config-id $OIDC_ID --subnet-ids=$SUBNET_IDS
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --mode=auto --hosted-cp --operator-roles-prefix $OPERATOR_ROLES_PREFIX --oidc-config-id $OIDC_ID --subnet-ids=$SUBNET_IDS --billing-account=$BILLING_ID
 
 echo "Script execution completed."
