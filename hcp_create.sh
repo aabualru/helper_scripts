@@ -43,10 +43,6 @@ terraform apply "rosa.tfplan"
 
 # Extract Subnets and Tagging
 SUBNET_IDS=$(terraform output -raw cluster-subnets-string)
-PUBLIC_SUBNET=$(echo $SUBNET_IDS | cut -d ',' -f1)
-PRIVATE_SUBNET=$(echo $SUBNET_IDS | cut -d ',' -f2)
-aws ec2 create-tags --resources "$PUBLIC_SUBNET" --tags Key=kubernetes.io/role/elb,Value=1
-aws ec2 create-tags --resources "$PRIVATE_SUBNET" --tags Key=kubernetes.io/role/internal-elb,Value=1
 
 # Create ROSA account roles
 rosa create account-roles --hosted-cp --mode auto --yes
