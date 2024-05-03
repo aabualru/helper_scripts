@@ -1,5 +1,8 @@
 #!/bin/bash
+
 set -e
+
+aws configure
 
 # Prompt the user for the path to their local git folder and validate it
 read -p "Enter the path of your local git folder: " git_folder
